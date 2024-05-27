@@ -1,7 +1,7 @@
 import sqlalchemy
 import pandas as pd
 from sqlalchemy.sql import text
-
+import matplotlib.pyplot as plt
 
 class DBManager:
     def __init__(self, data):
@@ -205,3 +205,113 @@ class DBManager:
         df = pd.DataFrame(res.fetchall(), columns=res.keys())
         print("Month with most snow for the location with least snowy days: ")
         print(df)
+
+    # 2. Inspect the rows in Temperature where both ”highest” and ”lowest” are not NULL. Calculate
+    # the sample correlation coefficient between these two attributes. What can you interpret from this
+    # value? Find the correlations when grouping by location.
+    def query_02(self):
+        print("------------------------ Query 2 ------------------------")
+
+        # Query to calculate the sample correlation coefficient between the highest and lowest temperatures
+        query = text("""
+        SELECT corr(lowest, highest) AS correlation
+        FROM temperature
+        WHERE lowest IS NOT NULL AND highest IS NOT NULL;
+        """)
+        res = self.engine.connect().execute(query)
+        # Convert to dataframe
+        df = pd.DataFrame(res.fetchall(), columns=res.keys())
+        print("Correlation coefficient between lowest and highest temperatures: ")
+        print(df)
+
+        # Query to find the correlations when grouping by location
+        query = text("""
+        SELECT place.name, corr(lowest, highest) AS correlation
+        FROM temperature
+        JOIN place ON temperature.place = place.code
+        WHERE lowest IS NOT NULL AND highest IS NOT NULL
+        GROUP BY place.name;
+        """)
+        res = self.engine.connect().execute(query)
+        # Convert to dataframe
+        df = pd.DataFrame(res.fetchall(), columns=res.keys())
+        print("Correlation coefficient between lowest and highest temperatures grouped by location: ")
+        print(df)
+    
+    # 3. Find out the correlation between average temperature and latitude of the location.
+    def query_03(self):
+        print("------------------------ Query 3 ------------------------")
+
+        # Query to find the correlation between average temperature and latitude of the location
+        query = text("""
+        SELECT place.name, corr(air_temperature, latitude) AS correlation
+        FROM observation
+        JOIN place ON observation.place = place.code
+        WHERE air_temperature IS NOT NULL AND latitude IS NOT NULL
+        GROUP BY place.name;
+        """)
+        res = self.engine.connect().execute(query)
+        # Convert to dataframe
+        df = pd.DataFrame(res.fetchall(), columns=res.keys())
+        print("Correlation between average temperature and latitude of the location: ")
+        print(df)
+
+    # 4. For each location, use myplotlib to plot the number of rainy days for each month as a bar plot.
+    def query_04(self):
+        print("------------------------ Query 4 ------------------------")
+
+        # Query to find the number of rainy days for each month for each location
+        query = text("""
+        SELECT place.name, extract(month from date) as month, COUNT(rain) AS rainy_days
+        FROM observation
+        JOIN place ON observation.place = place.code
+        WHERE rain > 0
+        GROUP BY place.name, month
+        ORDER BY place.name, month;
+        """)
+        res = self.engine.connect().execute(query)
+        # Convert to dataframe
+        df = pd.DataFrame(res.fetchall(), columns=res.keys())
+        print("Number of rainy days for each month for each location: ")
+        print(df)
+
+        # Plot the number of rainy days for each month for each location
+        for name, group in df.groupby("name"):
+            plt.figure()
+            plt.bar(group["month"], group["rainy_days"])
+            plt.xlabel("Month")
+            plt.ylabel("Rainy Days")
+            plt.title(f"Number of Rainy Days for each Month at {name}")
+            plt.savefig(f"{name}_rainy_days.png")
+            plt.show()
+
+    # 5. For each location, plot the average temperature throughout the year. You may plot all the graphs
+    # into the same Figure.
+    def query_05(self):
+        print("------------------------ Query 5 ------------------------")
+
+        # Query to find the average temperature throughout the year for each location
+        query = text("""
+        SELECT place.name, extract(month from date) as month, AVG(air_temperature) AS avg_temperature
+        FROM observation
+        JOIN place ON observation.place = place.code
+        WHERE air_temperature IS NOT NULL
+        GROUP BY place.name, month
+        ORDER BY place.name, month;
+        """)
+        res = self.engine.connect().execute(query)
+        # Convert to dataframe
+        df = pd.DataFrame(res.fetchall(), columns=res.keys())
+        print("Average temperature throughout the year for each location: ")
+        print(df)
+
+        # Plot the average temperature throughout the year for each location, plot all the graphs into the same figure
+        fig, ax = plt.subplots()
+        for name, group in df.groupby("name"):
+            ax.plot(group["month"], group["avg_temperature"], label=name)
+        ax.legend()
+        plt.xlabel("Month")
+        plt.ylabel("Average Temperature")
+        plt.title("Average Temperature throughout the Year for each Location")
+        plt.savefig("average_temperature.png")
+        plt.show()

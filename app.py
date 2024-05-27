@@ -15,3 +15,12 @@ db_manager.insert_temperature()
 
 # Queries
 db_manager.query_01()
+print("\n")
+db_manager.query_02()
+print("\n")
+db_manager.query_03()
+print("\n")
+db_manager.query_04()
+print("\n")
+db_manager.query_05()
+print("\n")
