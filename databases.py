@@ -4,7 +4,7 @@ from sqlalchemy.sql import text
 import matplotlib.pyplot as plt
 # Exercise 1
 class DBManager:
-    # Define the
+    # Define the object components (the engine and relations, etc)
     def __init__(self, data):
         self.engine = None
         self.place: sqlalchemy.Table = None
